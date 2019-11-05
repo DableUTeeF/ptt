@@ -51,7 +51,7 @@ class CustomTensorBoard(TensorBoard):
             self.writer.add_summary(s)
 
     def on_epoch_end(self, epoch, logs=None):
-        print(f'\033[{np.random.randint(31, 37)}m')
+        print(f'\033[{np.random.randint(31, 37)}m', end='')
 
 
 class CustomModelCheckpoint(ModelCheckpoint):

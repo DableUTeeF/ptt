@@ -23,11 +23,15 @@ from __future__ import print_function
 
 import inspect
 import math
-import tensorflow as tf
-from keras import backend as K
+import numpy as np
 # This signifies the max integer that the controller RNN could predict for the
 # augmentation scheme.
 _MAX_LEVEL = 10.
+
+
+class dotdict(dict):
+    def __getattr__(self, item):
+        return self[item]
 
 
 def policy_v0():
@@ -464,8 +468,8 @@ NAME_TO_FUNC = {
 
 def _randomly_negate_tensor(tensor):
     """With 50% prob turn the tensor negative."""
-    should_flip = tf.cast(tf.floor(tf.random_uniform([]) + 0.5), tf.bool)
-    final_tensor = tf.cond(should_flip, lambda: tensor, lambda: -tensor)
+    should_flip = bool(np.floor(np.random.rand() + 0.5))
+    final_tensor = tensor if should_flip else -tensor
     return final_tensor
 
 
@@ -558,25 +562,22 @@ def _apply_func_with_prob(func, image, args, prob):
         prob = 1.0
 
     # Apply the function with probability `prob`.
-    should_apply_op = tf.cast(
-        tf.floor(tf.random_uniform([], dtype=tf.float32) + prob), tf.bool)
-    augmented_image = tf.cond(
-        should_apply_op,
-        lambda: func(image, *args),
-        lambda: image)
+    should_apply_op = bool(np.floor(np.random.rand() + prob))
+    if should_apply_op:
+        augmented_image = func(image, *args)
+    else:
+        augmented_image = image
     return augmented_image
 
 
 def select_and_apply_random_policy(policies, image):
     """Select a random policy from `policies` and apply it to `image`."""
-    policy_to_select = tf.random_uniform([], maxval=len(policies), dtype=tf.int32)
+    policy_to_select = np.random.randint(len(policies))
     # Note that using tf.case instead of tf.conds would result in significantly
     # larger graphs and would even break export for some larger policies.
     for (i, policy) in enumerate(policies):
-        image = tf.cond(
-            tf.equal(i, policy_to_select),
-            lambda selected_policy=policy: selected_policy(image),
-            lambda: image)
+        if i == policy_to_select:
+            image = policy(image)
     return image
 
 
@@ -657,9 +658,7 @@ def distort_image_with_autoaugment(image, augmentation_name):
 
     policy = available_policies[augmentation_name]()
     # Hparams that will be used for AutoAugment.
-    augmentation_hparams = tf.contrib.training.HParams(
-        cutout_const=100, translate_const=250)
-
+    augmentation_hparams = dotdict({'cutout_const': 100, 'translate_const': 256})
     return build_and_apply_nas_policy(policy, image, augmentation_hparams)
 
 
@@ -681,30 +680,21 @@ def distort_image_with_randaugment(image, num_layers, magnitude):  # todo: probl
       The augmented version of `image`.
     """
     replace_value = [128] * 3
-    tf.logging.info('Using RandAug.')
-    augmentation_hparams = tf.contrib.training.HParams(
-        cutout_const=40, translate_const=100)
+    augmentation_hparams = dotdict({'cutout_const': 40, 'translate_const': 100})
     available_ops = [
         'AutoContrast', 'Equalize', 'Invert', 'Rotate', 'Posterize',
         'Solarize', 'Color', 'Contrast', 'Brightness', 'Sharpness',
         'ShearX', 'ShearY', 'TranslateX', 'TranslateY', 'Cutout', 'SolarizeAdd']
 
     for layer_num in range(num_layers):
-        op_to_select = tf.random_uniform(
-            [], maxval=len(available_ops), dtype=tf.int32)
+        op_to_select = np.random.randint(len(available_ops))
         random_magnitude = float(magnitude)
-        with tf.name_scope('randaug_layer_{}'.format(layer_num)):
-            for (i, op_name) in enumerate(available_ops):
-                prob = tf.random_uniform([], minval=0.2, maxval=0.8, dtype=tf.float32)
-                func, _, args = _parse_policy_info(op_name, prob, random_magnitude,
-                                                   replace_value, augmentation_hparams)
+        for (i, op_name) in enumerate(available_ops):
+            prob = np.clip(np.random.rand(), 0.2, 0.8).astype('float32')
+            func, _, args = _parse_policy_info(op_name, prob, random_magnitude,
+                                               replace_value, augmentation_hparams)
 
-                sess = K.get_session()
-                image = tf.cond(
-                    tf.equal(i, op_to_select),
-                    # pylint:disable=g-long-lambda
-                    lambda selected_func=func, selected_args=args: selected_func(
-                        image, *selected_args),
-                    # pylint:enable=g-long-lambda
-                    lambda: image).eval(session=sess)
+            if i == op_to_select:
+                image = func(image, *args)
+
     return image
