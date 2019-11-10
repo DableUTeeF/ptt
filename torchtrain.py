@@ -17,7 +17,7 @@ from sklearn.metrics import f1_score
 import numpy as np
 from torch.optim.lr_scheduler import ExponentialLR
 from utils import Progbar
-from histogram_crop import hist_crop
+from new_crop import crop
 torch.manual_seed(0)
 np.random.seed(0)
 
@@ -87,19 +87,22 @@ def accuracy(output, target, topk=(1,)):
     return res
 
 
+def add_crop(image):
+    image = np.array(image)
+    return Image.fromarray((crop(image)).astype('uint8'))
+
+
 if __name__ == '__main__':
     root = '/home/root1/Desktop/ott/'
     batch_size = 8
-    h1 = hist_crop(528, )
-    h2 = hist_crop(528, )
-    val_transform = transforms.Compose([h1,
+    val_transform = transforms.Compose([add_crop,
                                         transforms.Resize(528),
                                         transforms.CenterCrop(528),
                                         transforms.RandomHorizontalFlip(),
                                         transforms.RandomVerticalFlip(),
                                         transforms.ToTensor(),
                                         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]), ])
-    train_transform = transforms.Compose([h2,
+    train_transform = transforms.Compose([add_crop,
                                           transforms.Resize(528),
                                           transforms.CenterCrop(528),
                                           transforms.ToTensor(),
@@ -209,8 +212,6 @@ if __name__ == '__main__':
         train(trainloader, model, criterion, optimizer, i+1)
         torch.save(model.state_dict(), f'checkpoint/temp.torch')
         acc, f1 = validate(testloader, model, criterion)
-        h1.total_error = 0
-        h2.total_error = 0
         dct = {'net': model.state_dict(),
                'opt': optimizer.state_dict(),
                'acc': acc,
