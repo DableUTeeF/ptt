@@ -478,7 +478,7 @@ def crop(rgb, debug=False):
     reg = regionprops(L)
     if len(reg) > 1:
         RGB = rgb[r1 + R1:r1 + R2, c1 + C1:c1 + C2]
-        white = (RGB[:, :, 0] > 0.9) & (RGB[:, :, 1] > 0.9) & (RGB[:, :, 2] > 0.9)
+        white = (RGB[:, :, 0] > 0.97) & (RGB[:, :, 1] > 0.97) & (RGB[:, :, 2] > 0.97)
         if np.sum(white) > 0:
             area_ratio = np.zeros(L.max() + 1)
             for REG in reg:
