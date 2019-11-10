@@ -95,14 +95,14 @@ def add_crop(image):
 if __name__ == '__main__':
     root = '/home/root1/Desktop/ott/'
     batch_size = 8
-    val_transform = transforms.Compose([add_crop,
+    train_transform = transforms.Compose([add_crop,
                                         transforms.Resize(528),
                                         transforms.CenterCrop(528),
                                         transforms.RandomHorizontalFlip(),
                                         transforms.RandomVerticalFlip(),
                                         transforms.ToTensor(),
                                         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]), ])
-    train_transform = transforms.Compose([add_crop,
+    val_transform = transforms.Compose([add_crop,
                                           transforms.Resize(528),
                                           transforms.CenterCrop(528),
                                           transforms.ToTensor(),
