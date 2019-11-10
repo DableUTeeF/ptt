@@ -470,7 +470,7 @@ def crop(rgb, debug=False):
 
     # remove light
     e = edge[R1:R2, C1:C2]
-    e = dilation(e, square(10))
+    e = dilation(e, square(20))
     if debug:
         plt.imshow(e)
         plt.show()
