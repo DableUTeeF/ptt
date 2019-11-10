@@ -596,7 +596,7 @@ def fn(file, dirpath):
         return
     im = imread(os.path.join(src_cls, file))
     im = crop(im)
-    imsave(os.path.join(dest_cls, file), (im * 255).astype('uint8'))
+    imsave(os.path.join(dest_cls, file), im.astype('uint8'))
 
 
 if __name__ == '__main__':
