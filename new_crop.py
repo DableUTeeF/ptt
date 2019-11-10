@@ -309,9 +309,9 @@ def crop(rgb, debug=False):
 def fn(file, dirpath):
     if 'screenshot' in file.lower():
         return
-    if os.path.exists(os.path.join(dirpath, file)):
-        return
     src_cls, dest_cls = dirpath.split('|')
+    if os.path.exists(os.path.join(dest_cls, file)):
+        return
     im = imread(os.path.join(src_cls, file))
     im = crop(im)
     imsave(os.path.join(dest_cls, file), (im * 255).astype('uint8'))
@@ -340,5 +340,5 @@ if __name__ == '__main__':
             src_cls = os.path.join(root, src[i], cls)
             if not os.path.isdir(os.path.join(root, dest[i], cls)):
                 os.mkdir(os.path.join(root, dest[i], cls))
-            with poolcontext(processes=3) as pool:
+            with poolcontext(processes=16) as pool:
                 results = pool.map(partial(fn, dirpath=src_cls + '|' + dest_cls), os.listdir(src_cls))
