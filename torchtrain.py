@@ -16,6 +16,8 @@ from utils import Progbar
 from efficientnet_pytorch import EfficientNet
 from sklearn.metrics import f1_score
 import numpy as np
+from new_crop import crop
+from PIL import Image
 
 
 def getmodel(cls):
@@ -23,6 +25,11 @@ def getmodel(cls):
     num_ftrs = model._fc.in_features
     model._fc = nn.Linear(num_ftrs, cls)
     return model
+
+
+def add_crop(image):
+    image = np.array(image)
+    return Image.fromarray((crop(image)).astype('uint8'))
 
 
 if __name__ == '__main__':
@@ -60,6 +67,8 @@ if __name__ == '__main__':
     train_dataset = datasets.ImageFolder(
         args.traindir,
         transforms.Compose([
+            transforms.Resize(800),
+            add_crop,
             transforms.Resize(args.imsize),
             transforms.CenterCrop(args.imsize),
             transforms.RandomHorizontalFlip(),
@@ -74,6 +83,8 @@ if __name__ == '__main__':
                                               pin_memory=False)
     val_loader = torch.utils.data.DataLoader(
         datasets.ImageFolder(args.valdir, transforms.Compose([
+            transforms.Resize(800),
+            add_crop,
             transforms.Resize(args.imsize),
             transforms.CenterCrop(args.imsize),
             transforms.ToTensor(),
@@ -172,6 +183,7 @@ if __name__ == '__main__':
 
 
     for epoch in range(start_epoch, start_epoch + args.epochs):
+        # noinspection PyArgumentList
         scheduler.step()
         train(epoch)
         test(epoch)
